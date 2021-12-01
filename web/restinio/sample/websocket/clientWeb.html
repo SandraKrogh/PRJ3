@@ -1,0 +1,81 @@
+
+
+
+<html>  
+<head>  
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tabulator/3.5.3/js/tabulator.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabulator/3.5.3/css/tabulator.min.css"></link>
+
+  <script type = "text/javascript">
+
+    function WebSocketTest()
+    {
+        //Note: Route Is chat
+        const socket = new WebSocket('ws://localhost:8080/chat');
+
+        socket.addEventListener('Open', function (event){
+          //Sending a message to the web socket server...
+            socket.send('Hello Server!');
+        });
+    
+
+        //Listen for messages 
+        socket.addEventListener('message', function (message){
+            console.log('Message from server', message.data);
+        });
+    };
+
+    /*// All data
+    function getData() {
+    axios.get('http://localhost:8080')
+            .then(response => {
+        setTable(response.data);
+            }).catch(error => alert('Try again'));
+    }
+
+    //Get latest weatherdata (3 sidste)
+    function getDataThree() {
+    axios.get('http://localhost:8080/three')
+            .then(response => {
+        setTable(response.data);
+            }).catch(error => alert('Try again'));
+    }
+
+    //Get data by date
+    function getDataByDate(date) {
+    axios.get('http://localhost:8080/wsbydate/'+date)
+            .then(response => {
+        setTable(response.data);
+            }).catch(error => alert('Try again'));
+    }
+
+    function sendData() {
+    axios.post('http://localhost:8080',
+           {
+               "id": document.getElementById("id").value,
+               "date": document.getElementById("date").value,
+               "time": document.getElementById("time").value,
+               "place": { 
+                 "name": document.getElementById("placename").value,
+                 "lat": document.getElementById("lat").value,
+                 "lon": document.getElementById("lon").value 
+                },
+               "temperature": document.getElementById("temperature").value,
+               "humidity": document.getElementById("humidity").value
+           }
+           )
+            .then(response => {
+            }).catch(error => alert('Try again'));
+    }          */
+
+  </script>  
+</head>  
+<body>  
+    <div id = "sse">
+        <a href = "javascript:WebSocketTest()">Run WebSocket</a>
+     </div>
+</body>  
+</html>

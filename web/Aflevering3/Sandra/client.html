@@ -1,0 +1,123 @@
+
+
+<!--- 
+<form action="http://localhost:8080" method="post">
+    <label>Enter a message:</label>
+    <input type="text" name="value" placeholder="HTTP POST test!">
+    <button type="submit">Send to server</button>
+</form>
+--->
+
+
+<html>  
+<head>  
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tabulator/3.5.3/js/tabulator.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabulator/3.5.3/css/tabulator.min.css"></link>
+
+  <script type = "text/javascript">
+    function setTable(data){
+    $("#table").tabulator({
+        layout: "fitDataFill",
+        height: "311px",
+        columns: [
+        {
+            title: "Id",
+            field: "id"
+        },
+        {
+            title: "Date",
+            field: "date"
+        },
+        {
+            title: "Time",
+            field: "time"
+        },
+        {
+            title: "Place",
+            field: "place.name"
+        },
+        {
+            title: "Place",
+            field: "place.lat"
+        },
+        {
+            title: "Place",
+            field: "place.lon"
+        },
+        {
+            title: "Temperature",
+            field: "temperature"
+        },
+        {
+            title: "Humidity",
+            field: "humidity"
+        }
+        ],
+    });
+    $("#table").tabulator("setData", data);
+    }
+
+    // All data
+    function getData() {
+    axios.get('http://localhost:8080')
+            .then(response => {
+        setTable(response.data);
+            }).catch(error => alert('Try again'));
+    }
+
+    //Get latest weatherdata (3 sidste)
+    function getDataThree() {
+    axios.get('http://localhost:8080/three')
+            .then(response => {
+        setTable(response.data);
+            }).catch(error => alert('Try again'));
+    }
+
+    //Get data by date
+    function getDataByDate(date) {
+    axios.get('http://localhost:8080/wsbydate/'+date)
+            .then(response => {
+        setTable(response.data);
+            }).catch(error => alert('Try again'));
+    }
+
+
+    function sendData() {
+    axios.post('http://localhost:8080',
+           {
+               "id": document.getElementById("id").value,
+               "date": document.getElementById("date").value,
+               "time": document.getElementById("time").value,
+               "place": { 
+                 "name": document.getElementById("placename").value,
+                 "lat": document.getElementById("lat").value,
+                 "lon": document.getElementById("lon").value 
+                },
+               "temperature": document.getElementById("temperature").value,
+               "humidity": document.getElementById("humidity").value
+           }
+           )
+            .then(response => {
+            }).catch(error => alert('Try again'));
+    }          
+  </script>  
+</head>  
+<body>  
+  <p>Get random cat fact</p>  
+  <input type = "button" onclick = "getData()" value = "Hent data">
+  <p>Send data</p>
+  <p>Id<input id="id" type="text"></p>
+  <p>Date<input id="date" type="text"><p/>
+  <p>Time<input id="time" type="text"><p/>
+  <p>Name<input id="placename" type="text"><p/>
+  <p>Lat<input id="lat" type="number"><p/>
+  <p>Lon<input id="lon" type="number"><p/>
+  <p>Temperature<input id="temperature" type="text"><p/>
+  <p>Humidity<input id="humidity" type="text"><p/>
+  <input type = "button" onclick = "sendData()" value = "Send Data">
+  <div id="table">
+</body>  
+</html>
