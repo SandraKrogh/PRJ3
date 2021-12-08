@@ -1,128 +1,78 @@
-#include <iostream>
-
 #include <restinio/all.hpp>
 
 #include <json_dto/pub.hpp>
 
 #include <string>
 
-
-int BUFSIZE = 1000;
-char fileBuffer[10000];
-
-//biblioteker til fopen fil
-#include <fstream>
-#include <streambuf>
-#include <stdio.h>
-
-/*struct weather_t
-{
-	weather_t() = default;
-
-	weather_t(
-		std::string id,
-		std::string date,
-		std::string time,
-		std::string temperature,
-		std::string humidity)
-		:	m_id{ std::move( id )}
-		,	m_date{ std::move( date )}
-		,	m_time{ std::move( time )}
-		,	m_temperature{ std::move( temperature )}
-		,	m_humidity{ std::move( humidity )}
-	{}
-
-	template < typename JSON_IO >
-	void
-	json_io( JSON_IO & io )
-	{
-		io
-			& json_dto::mandatory( "id", m_id )
-			& json_dto::mandatory( "date", m_date )
-			& json_dto::mandatory( "time", m_time )
-			& json_dto::mandatory( "temperature", m_temperature )
-			& json_dto::mandatory( "humidity", m_humidity ); 
-	}
-
-	std::string m_id;
-	std::string m_date;
-	std::string m_time;
-	std::string m_temperature;
-	std::string m_humidity;
-	
-};*/
-
-struct game_t
-{
-	game_t() = default;
-	game_t(
-		std::string id, std::string name, std::string players)
-		:	m_id{ std::move( id ) }
-		,	m_name{ std::move( name ) }
-		,	m_players{ std::move( players)}
-	{}
-
-	template < typename JSON_IO >
-	void
-	json_io( JSON_IO & io )
-	{
-		io
-			& json_dto::mandatory( "id", m_id )
-			& json_dto::mandatory( "name", m_name )
-			& json_dto::mandatory( "players", m_players );
-	}
-
-    std::string m_id;
-    std::string m_name;
-    std::string m_players;
-};
-
-using game_collection_t = std::vector< game_t >;
+#include "../../../../RPIdata.hpp"
+#include "../../../../PSoCcom.hpp"
 
 namespace rr = restinio::router;
 using router_t = rr::express_router_t<>;
 
-
-class game_handler_t
+/******************************************************************************
+                                   selected HANDLER_T
+*******************************************************************************/
+class selected_handler_t
 {
 public :
-	explicit game_handler_t( game_collection_t & games )
-		:	m_games( games )
-	{}
+	explicit selected_handler_t( selected_t &selected)
+		:	m_selected( selected ), m_RPIdata(new RPIdata(m_selected)), m_PSoCcom(new PSoCcom)
+	{
+	}
 
-	game_handler_t( const game_handler_t & ) = delete;
-	game_handler_t( game_handler_t && ) = delete;
+	selected_handler_t( const selected_handler_t & ) = delete;
+	selected_handler_t( selected_handler_t && ) = delete;
 
-	auto on_games_list(
+	~selected_handler_t()
+	{
+		delete m_RPIdata;
+
+		delete m_PSoCcom;
+	}
+/******************************************************************************
+                        	ON PLAYERS POST, GEM PLAYERS
+*******************************************************************************/
+
+	auto on_players_post(
 		const restinio::request_handle_t& req, rr::route_params_t ) const
 	{
 		auto resp = init_resp( req->create_response() );
 
-		resp.set_body(json_dto::to_json(m_games));
+		players_t p = json_dto::from_json< players_t >( req->body() );
+		m_selected.m_players = p.m_players;
 
-		return resp.done();
-	}
+		std::cout << "On players post" << std::endl;
 
-	auto on_game_get(
-		const restinio::request_handle_t& req, rr::route_params_t params )
-	{
-		const auto gamenum = restinio::cast_to< std::uint32_t >( params[ "gamenum" ] );
-
-		auto resp = init_resp( req->create_response() );
+		m_RPIdata->saveSelected();
 
 		return resp.done();
 	}
 
 
-	auto on_new_game(
+
+/******************************************************************************
+                                   ON HOME, START SIDEN
+*******************************************************************************/
+
+	auto on_home(
 		const restinio::request_handle_t& req, rr::route_params_t )
 	{
 		auto resp = init_resp( req->create_response() );
 
 		try
 		{
-			m_games.emplace_back(
-				json_dto::from_json< game_t >( req->body() ) );
+			std::ifstream t("home.html");
+			std::stringstream fileBuffer;
+			fileBuffer << t.rdbuf();
+
+			std::cout << "HTML:" << fileBuffer.str() << std::endl;
+			resp.set_body(fileBuffer.str());
+
+			m_RPIdata->retrieveSelected();
+
+			resp.set_body(json_dto::to_json(m_selected));
+
 		}
 		catch( const std::exception &  )
 		{
@@ -133,23 +83,81 @@ public :
 		return resp.done();
 	}
 
-	auto on_start(
+/******************************************************************************
+                                   ON START GAME, START SPIL
+*******************************************************************************/
+
+	auto on_start_game(
 		const restinio::request_handle_t& req, rr::route_params_t )
 	{
+		
+		std::cout << "on_start_game kaldt" << std::endl;
+
 		auto resp = init_resp( req->create_response() );
-		//auto resp = "text/html; charset=utf-8";
 
 		try
 		{
-			std::ifstream t("client.txt");
+			
+			m_RPIdata->retrieveSelected();
+
+			m_PSoCcom->startSpil(m_selected.m_game.m_game, m_selected.m_players.m_players);
+
+			std::ifstream t("startGame.html");
+			std::stringstream fileBuffer;
+			fileBuffer << t.rdbuf();
+
+			std::cout << "HTML:" << fileBuffer.str() << std::endl;
+			resp.set_body(fileBuffer.str());
+
+		}
+		catch( const std::exception &  )
+		{
+			std::cout << req->body() << std::endl;
+			mark_as_bad_request( resp );
+		}
+
+		return resp.done();
+	}
+
+/******************************************************************************
+                      ON game post, SÆTTER TYPE SPIL
+*******************************************************************************/
+
+	auto on_game_post(
+		const restinio::request_handle_t& req, rr::route_params_t )
+	{
+		auto resp = init_resp( req->create_response() );
+
+		game_t p = json_dto::from_json< game_t >( req->body() );
+		m_selected.m_game = p.m_game;
+
+		std::cout << "On game post" << std::endl;
+
+		std::cout << "valgt spil " << p.m_game << std::endl;
+
+		m_RPIdata->saveSelected();
+
+		return resp.done();
+	}
+
+/******************************************************************************
+    				ON SET PLAYERS, VISER PLAYER MENU
+*******************************************************************************/
+
+	auto on_set_players(
+		const restinio::request_handle_t& req, rr::route_params_t )
+	{
+		auto resp = init_resp( req->create_response() );
+
+		try
+		{
+			std::ifstream t("setPlayers.html");
 			std::stringstream fileBuffer;
 			fileBuffer << t.rdbuf();
 
 
 			std::cout << "HTML:" << fileBuffer.str() << std::endl;
 			resp.set_body(fileBuffer.str());
-
-			//json_dto::from_json< game_t >( req->body() ) );
 		}
 		catch( const std::exception &  )
 		{
@@ -160,59 +168,68 @@ public :
 		return resp.done();
 	}
 
-	auto on_game_update(
-		const restinio::request_handle_t& req, rr::route_params_t params )
-	{
-		const auto gamenum = restinio::cast_to< std::uint32_t >( params[ "gamenum" ] );
+/******************************************************************************
+    				ON SET GAME, VISER GAME MENU
+*******************************************************************************/
 
+	auto on_set_game(
+		const restinio::request_handle_t& req, rr::route_params_t )
+	{
 		auto resp = init_resp( req->create_response() );
 
 		try
 		{
-			auto b = json_dto::from_json< game_t >( req->body() );
+			std::ifstream t("setGame.html");
+			std::stringstream fileBuffer;
+			fileBuffer << t.rdbuf();
 
-			if( 0 != gamenum && gamenum <= m_games.size() )
-			{
-				m_games[ gamenum - 1 ] = b;
-			}
-			else
-			{
-				mark_as_bad_request( resp );
-				resp.set_body( "No game with #" + std::to_string( gamenum ) + "\n" );
-			}
+
+			std::cout << "HTML:" << fileBuffer.str() << std::endl;
+			resp.set_body(fileBuffer.str());
 		}
-		catch( const std::exception & )
+		catch( const std::exception &  )
 		{
+			std::cout << req->body() << std::endl;
 			mark_as_bad_request( resp );
 		}
 
 		return resp.done();
 	}
 
-	auto on_game_delete(
-		const restinio::request_handle_t& req, rr::route_params_t params )
-	{
-		const auto gamenum = restinio::cast_to< std::uint32_t >( params[ "gamenum" ] );
+/******************************************************************************
+                   ON_SETTINGS, SE NUVÆRENDE INDSTILLINGER
+*******************************************************************************/
 
+	auto on_settings(
+		const restinio::request_handle_t& req, rr::route_params_t )
+	{
 		auto resp = init_resp( req->create_response() );
 
-		if( 0 != gamenum && gamenum <= m_games.size() )
+		try
 		{
+			
+			std::ifstream t("settings.txt");
+			std::stringstream fileBuffer;
+			fileBuffer << t.rdbuf();
 
-			m_games.erase( m_games.begin() + ( gamenum - 1 ) );
+			std::cout << "HTML:" << fileBuffer.str() << std::endl;
+			resp.set_body(fileBuffer.str());
+
 		}
-		else
+		catch( const std::exception &  )
 		{
-			resp.set_body(
-				"No game with #" + std::to_string( gamenum ) + "\n" );
+			std::cout << req->body() << std::endl;
+			mark_as_bad_request( resp );
 		}
 
 		return resp.done();
 	}
 
-	// Tilføjet funktion fra Søren
+/******************************************************************************
+                         OPTIONS, TILFØJET FRA SØREN
+*******************************************************************************/
   auto options(restinio::request_handle_t req,
-           restinio::router::route_params_t /*params*/)
+           restinio::router::route_params_t)
   {
     const auto methods = "OPTIONS, GET, POST, PATCH, DELETE";
     auto resp = init_resp( req->create_response() );
@@ -222,11 +239,15 @@ public :
     return resp.done();
   }
 
+/******************************************************************************
+                       PRIVATE ATR. FOR GAME HANDLER
+*******************************************************************************/
+
 private :
-	game_collection_t & m_games;
+	selected_t &m_selected;
+	RPIdata *m_RPIdata;
+	PSoCcom *m_PSoCcom;
 	
-
-
 	template < typename RESP >
 	static RESP
 
@@ -248,10 +269,14 @@ private :
 	}
 };
 
-auto server_handler( game_collection_t & game_collection )
+/******************************************************************************
+                                   SERVER HANDLERS
+*******************************************************************************/
+
+auto server_handler( selected_t & selected )
 {
 	auto router = std::make_unique< router_t >();
-	auto handler = std::make_shared< game_handler_t >( std::ref(game_collection) );
+	auto handler = std::make_shared< selected_handler_t >( std::ref(selected) );
 
 	auto by = [&]( auto method ) {
 		using namespace std::placeholders;
@@ -265,13 +290,22 @@ auto server_handler( game_collection_t & game_collection )
 		};
 
 	// Handlers for '/' path.
-	router->http_get( "/api", by( &game_handler_t::on_games_list ) );
-	router->http_post( "/api", by( &game_handler_t::on_new_game ) );
+	router->http_get( "/", by( &selected_handler_t::on_home ) );
 
-	router->http_get( "/", by( &game_handler_t::on_start ) );
+	// Redirect to selected or players
+	router->http_get( "/game", by( &selected_handler_t::on_set_game) );
+	router->http_get( "/players", by( &selected_handler_t::on_set_players ) );
+	router->http_get( "/startgame", by( &selected_handler_t::on_start_game ) );
+	router->http_get( "/settings", by( &selected_handler_t::on_settings ) ); //se nuværende indstillinger 
+
+	// Post number of players
+	router->http_post( "/players", by( &selected_handler_t::on_players_post ) );
+
+	// Post det valgte spil
+	router->http_post( "/game", by( &selected_handler_t::on_game_post ) );
 
 	//Tilføjet fra Søren
-	router->add_handler(restinio::http_method_options(), "/", by( &game_handler_t::options ) );
+	router->add_handler(restinio::http_method_options(), "/", by( &selected_handler_t::options ) );
 
 	// Disable all other methods for '/'.
 	router->add_handler(
@@ -284,28 +318,22 @@ auto server_handler( game_collection_t & game_collection )
 			restinio::router::none_of_methods( restinio::http_method_get() ),
 			"/author/:author", method_not_allowed );
 
-	// Handlers for '/:gamenum' path.
-	router->http_get(
-			R"(/:gamenum(\d+))",
-			by( &game_handler_t::on_game_get ) );
-	router->http_put(
-			R"(/:gamenum(\d+))",
-			by( &game_handler_t::on_game_update ) );
-	router->http_delete(
-			R"(/:gamenum(\d+))",
-			by( &game_handler_t::on_game_delete ) );
+	// HVAD ER DET HER ??%?%¤)?)%")&)¤&)?#%=&?#?=&?¤#=%"
 
-	// Disable all other methods for '/:gamenum'.
+	// Disable all other methods for '/:selectednum'.
+	/*
 	router->add_handler(
 			restinio::router::none_of_methods(
 					restinio::http_method_get(),
 					restinio::http_method_post(),
 					restinio::http_method_delete() ),
-			R"(/:gamenum(\d+))", method_not_allowed );
+			R"(/:selectednum(\d+))", method_not_allowed );*/
 
 	return router;
 }
-
+/******************************************************************************
+                                   MAIN
+*******************************************************************************/
 
 int main()
 {
@@ -319,14 +347,14 @@ int main()
 				restinio::single_threaded_ostream_logger_t,
 				router_t >;
 	
-	
-		game_collection_t game_collection{
-			{"1", "Fisk", "5"}};
+
+		selected_t selected;
 
 		restinio::run(
 			restinio::on_this_thread< traits_t >()
-				.address( "localhost" )
-				.request_handler( server_handler( game_collection ) )
+				.address( "0.0.0.0" )
+				//.request_handler( server_handler( selected_collection ) )
+				.request_handler( server_handler( selected ) )
 				.read_next_http_message_timelimit( 10s )
 				.write_http_response_timelimit( 1s )
 				.handle_request_timeout( 1s ) );

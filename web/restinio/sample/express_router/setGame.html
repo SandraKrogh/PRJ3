@@ -1,0 +1,54 @@
+<html>  
+<head>  
+
+  <script type = "text/javascript">
+
+// Gem antal spillere
+function saveData() {
+axios.post('http://10.9.8.2:8080/game',
+           {
+               "game": document.getElementById("game").value
+           }
+           )
+            .then(response => {showhome()
+            }).catch(error => alert('Try again'));
+    }
+      
+var subjectObject = {
+    "Fisk": [],
+    "500": [],
+    "Røvhul": []
+}
+
+//Laver dropdown menu 
+window.onload = function() {
+  var subjectSel = document.getElementById("game");
+  for (var x in subjectObject) {
+    subjectSel.options[subjectSel.options.length] = new Option(x, x);
+  }
+
+}
+
+function showhome()
+{
+  window.location.href = 'http://10.9.8.2:8080';
+}
+
+</script>  
+
+</head>  
+<body>  
+    <h1>Indstil spil</h1>  
+    <form name="form1" action="http://10.9.8.2:8080">
+        Vælg spil: <select name="game" id="game">
+            <option value="" selected="selected">Spil</option>
+            <input type="button"  onclick = "saveData()" value="Gem">
+        </select>
+    </form>
+
+    <form action="http://10.9.8.2:8080">
+        <input type = "submit" value = "Gå tilbage">
+    </form>
+
+</body>  
+</html>

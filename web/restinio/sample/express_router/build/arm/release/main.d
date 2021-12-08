@@ -1,4 +1,4 @@
-build/x86-64/release/build/x86-64/release/main.o: main.cpp \
+build/arm/release/build/arm/release/main.o: main.cpp \
  ../../restinio/all.hpp ../../restinio/version.hpp \
  ../../restinio/asio_include.hpp ../../restinio/settings.hpp \
  ../../restinio/exception.hpp ../../restinio/string_view.hpp \

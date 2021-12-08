@@ -1,0 +1,50 @@
+
+
+<html>  
+<head>  
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tabulator/3.5.3/js/tabulator.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabulator/3.5.3/css/tabulator.min.css"></link>
+
+  <script type = "text/javascript">
+
+fetch("settings.txt")
+  .then(function (response) {
+    // The JSON data will arrive here
+  })
+  .catch(function (err) {
+    // If an error occured, you will catch it here
+  });
+
+    //Start game
+
+    axios.get('http://10.9.8.2:8080/')
+            .then(response => {
+              console.log(response);
+            }).catch(error => alert('Try again'));
+
+  </script>  
+</head>  
+<body>  
+  <h1>Velkommen til DealerBot</h1>
+
+  </form>  <form action="http://10.9.8.2:8080/game">
+    <input type = "submit" value = "Indstil spil">
+  </form>
+
+  <form action="http://10.9.8.2:8080/players">
+    <input type = "submit" value = "Indstil antal spillere">
+  </form>
+
+  <form action="http://10.9.8.2:8080/settings">
+    <input type = "submit" value = "Se nuværende indstillinger">
+  </form>
+
+  <form action="http://10.9.8.2:8080/startgame">
+    <input type = "submit" value = "Start spil">
+  </form>
+
+</body>  
+</html>

@@ -60,13 +60,22 @@ int main(int argc, char* argv[])
 std::cout << "Programmet kører" << std::endl; 
   Serial s(57600, "/dev/ttyS0");
 
-  char buf[10];
+  char buf[5];
 
   for(;;)
   {  
-  size_t n = sprintf(buf, "R15C");
+  char besked[5];
+
+  std::cout << "Indtast 4 tegn:" << std::endl;
+  std::cin.getline(besked, 5);
+  
+  size_t n = sprintf(buf, besked);
+
   s.writeSome(buf, n);
   sleep(5);
+
+  std::cin.sync();
+  
   }
 
   //s.readCString(buf, 256);  

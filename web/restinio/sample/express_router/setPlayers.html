@@ -1,0 +1,41 @@
+<html>  
+<head>  
+  <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tabulator/3.5.3/js/tabulator.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabulator/3.5.3/css/tabulator.min.css"></link>
+
+
+  <script type = "text/javascript">
+ 
+  // Gem antal spillere
+    function saveData() {
+    axios.post('http://10.9.8.2:8080/players',
+           {
+               "players": document.getElementById("players").value
+           }
+           )
+            .then(response => {showhome()
+            }).catch(error => alert('Try again'));
+    }
+
+    function showhome()
+    {
+      window.location.href = 'http://10.9.8.2:8080';
+    }
+
+  </script>  
+</head>  
+<body>  
+    <h1>Indstil antal spillere</h2>  
+    <p>Indtast et antal spillere mellem 2-8</p> 
+    <input id="players" type="text">
+    <input type = "button" onclick = "saveData()" value = "Gem">
+    <div id="table">
+
+    <form action="http://10.9.8.2:8080">
+        <input type = "submit" value = "Gå tilbage">
+    </form>
+</body>  
+</html>

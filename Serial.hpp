@@ -6,7 +6,7 @@
 class Serial
 {
 public:
-  Serial(uint32_t baudRate, std::string portName)
+  Serial(uint32_t baudRate=57600, std::string portName="/dev/ttyS0")
     : serialPort_(io_, portName.c_str())
   {
     typedef boost::asio::serial_port_base spb;
